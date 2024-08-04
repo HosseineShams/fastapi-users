@@ -1,9 +1,9 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from app.models import SessionLocal, User
-from app.utils import verify_access_token
-from app.schemas import TokenData
+from .models import SessionLocal, User, Permission
+from .utils import verify_access_token
+from .schemas import TokenData
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
@@ -25,3 +25,11 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     if user is None:
         raise credentials_exception
     return user
+
+def check_admin(current_user: User = Depends(get_current_user)):
+    if current_user.role != "Admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to access this resource"
+        )
+    return current_user

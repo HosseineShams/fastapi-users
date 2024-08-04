@@ -1,13 +1,13 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from app.models import User
-from app.schemas import UserCreate, UserUpdate, UserResponse
-from app.utils import get_password_hash
+from .models import User, Permission
+from .schemas import UserCreate, UserUpdate, UserResponse, PermissionCreate, PermissionResponse
+from .utils import get_password_hash
 from fastapi import HTTPException, status
 
 def create_user(db: Session, user: UserCreate):
     hashed_password = get_password_hash(user.password)
-    db_user = User(username=user.username, email=user.email, password=hashed_password)
+    db_user = User(username=user.username, email=user.email, password=hashed_password, role="User")
     try:
         db.add(db_user)
         db.commit()
@@ -45,3 +45,13 @@ def delete_user(db: Session, user_id: int):
     db.delete(db_user)
     db.commit()
     return db_user
+
+def create_permission(db: Session, permission: PermissionCreate):
+    db_permission = Permission(role=permission.role, endpoint=permission.endpoint, method=permission.method)
+    db.add(db_permission)
+    db.commit()
+    db.refresh(db_permission)
+    return PermissionResponse.from_orm(db_permission)
+
+def get_permissions(db: Session, role: str):
+    return db.query(Permission).filter(Permission.role == role).all()
